@@ -16,7 +16,7 @@ async function createUser({ username, password }){
     
 }
 
-async function getUser({ username, passsword }) {
+async function getUser({ username, password }) {
 
 }
 
