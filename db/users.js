@@ -13,10 +13,10 @@ async function createUser({ username, password }){
     `, [username, password]);
 
     return user;
-    
+
 }
 
-async function getUser({ username, passsword }) {
+async function getUser({ username, password }) {
 
 }
 
