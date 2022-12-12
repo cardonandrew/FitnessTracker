@@ -5,7 +5,7 @@ const deletePass = (user) => {
   if(user.password){
     delete user.password
   }
-  return
+  return;
 }
 // user functions
 async function createUser({ username, password }){
@@ -28,38 +28,45 @@ async function createUser({ username, password }){
 }
  
 async function getUser({ username, password }) {
-try{
+  try {
     const { rows: [user] } = await client.query(`
       SELECT *
       FROM users
       WHERE username=$1 AND password=$2
     `, [username, password]);
 
-    if(password != user.password){throw Error("Password doesn't match")}
+
+    if (password != user.password)  {
+      throw Error("Password doesn't match")
+    }
     
     deletePass(user)
 
     return user;
-    }catch(error){
+    } catch(error){
       console.log(error)
     }
   }
 
 async function getUserById(userId) {
-  console.log(userId, "userID")
-    const { rows: [user] } = await client.query(`
-      SELECT *
-      FROM users
-      WHERE "id"=$1;
-  `, [userId]);
-  deletePass(user)
+  try {
+    console.log(userId, "userID")
+      const { rows: [user] } = await client.query(`
+        SELECT *
+        FROM users
+        WHERE "id"=$1;
+      `, [userId]);
+      deletePass(user)
 
-return user;
+    return user;
+  } catch (error) {
+    console.log(error)
+  }
 }
 
 
 async function getUserByUsername(userName) {
-
+  try {
       const { rows: [user] } = await client.query(`
         SELECT *
         FROM users
@@ -67,7 +74,11 @@ async function getUserByUsername(userName) {
       `, [userName]);
   
       return user;
+  } catch (error) {
+    console.log(error)
   }
+    
+}
 
 module.exports = {
   createUser,
