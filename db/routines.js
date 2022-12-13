@@ -2,7 +2,7 @@ const client = require('./client');
 
 async function getRoutineById(id){
   try {
-    const {row: [routine]} = await client.query(`
+    const { rows: [routine] } = await client.query(`
     SELECT * 
     FROM routines
     WHERE id=$1;
@@ -22,12 +22,12 @@ async function getRoutinesWithoutActivities(){
 
 async function getAllRoutines() {
   try {
-    const routines = await client.query(`
+    const { rows } = await client.query(`
     SELECT *
     FROM routines;
   `)
 
-  return routines;
+  return rows;
 
   } catch (error) {
     console.log("Could not get all routines");
@@ -36,23 +36,23 @@ async function getAllRoutines() {
   
 }
 
-async function getAllRoutinesByUser({username}) {
-  const routines = await client.query(`
+// async function getAllRoutinesByUser({username}) {
+//   const routines = await client.query(`
     
-  `)
-}
+//   `)
+// }
 
-async function getPublicRoutinesByUser({username}) {
-}
+// async function getPublicRoutinesByUser({username}) {
+// }
 
 async function getAllPublicRoutines() {
   try {
-    const routines = await client.query(`
+    const { rows } = await client.query(`
     SELECT *
     FROM routines
     WHERE "isPublic"=true;
   `)
-  return routines;
+  return rows;
 
   } catch (error) {
     console.log("Could not get all public routines");
@@ -61,26 +61,31 @@ async function getAllPublicRoutines() {
   
 }
 
-async function getPublicRoutinesByActivity({id}) {
+// async function getPublicRoutinesByActivity({id}) {
 
-}
+// }
 
 async function createRoutine({creatorId, isPublic, name, goal}) {
+  
   try {
+     await client.query(
+      `
+      INSERT INTO routines ("creatorId", "isPublic", name, goal)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (name) DO NOTHING;
+      `, 
+      [creatorId, isPublic, name, goal]);
 
-    await client.query(`
-    INSERT INTO routines("creatorId", "isPublic", name, goal)
-    VALUES ($1, $2, $3, $4)
-    ON CONFLICT (name) DO NOTHING;
-  ` [creatorId, isPublic, name, goal]);
+    const { rows: [routine] } = await client.query(
+      `
+      SELECT *
+      FROM routines
+      WHERE name=$1;
+      `,
+      [name]
+      );
 
-  const {row: [routine]} = await client.query(`
-    SELECT *
-    FROM routines
-    WHERE name=${name};
-  `)
-
-  return routine;
+    return routine;
 
   } catch (error) {
     console.log("Could not complete 'createroutine'");
@@ -89,15 +94,15 @@ async function createRoutine({creatorId, isPublic, name, goal}) {
   
 }
 
-async function updateRoutine({id, ...fields}) {
-}
+// async function updateRoutine({id, ...fields}) {
+// }
 
 async function destroyRoutine(id) {
   try {
     const routines = await client.query(`
     DELETE FROM routines
-    WHERE id=${id};
-  `)
+    WHERE id=$1;
+  `, [id])
 
   return routines;
 
@@ -110,13 +115,13 @@ async function destroyRoutine(id) {
 
 module.exports = {
   getRoutineById,
-  getRoutinesWithoutActivities, 
+  getRoutinesWithoutActivities,
   getAllRoutines,
   getAllPublicRoutines,
-  getAllRoutinesByUser,
-  getPublicRoutinesByUser,
-  getPublicRoutinesByActivity,
+  // getAllRoutinesByUser,
+  // getPublicRoutinesByUser,
+  // getPublicRoutinesByActivity,
   createRoutine,
-  updateRoutine,
+  // updateRoutine,
   destroyRoutine,
 }
