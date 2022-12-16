@@ -1,4 +1,5 @@
 const client = require('./client');
+const { destroyRoutineActivity, getRoutineActivitiesByRoutine } = require('./routine_activities');
 
 async function getRoutineById(id){
   try {
@@ -6,7 +7,7 @@ async function getRoutineById(id){
     SELECT * 
     FROM routines
     WHERE id=$1;
-  ` [id]);
+  `, [id]);
 
   return routine;
 
@@ -17,18 +18,24 @@ async function getRoutineById(id){
   
 }
 
-async function getRoutinesWithoutActivities(){
+async function getRoutinesWithoutActivities() {
 }
-
+let routines  = [];
 async function getAllRoutines() {
   try {
-    const { rows } = await client.query(`
-    SELECT *
-    FROM routines;
-  `)
+    const { rows } = await client.query(
+      `
+        SELECT username
+        FROM users;
+      `
+    );
+    rows.forEach(async (user) => {
+      routines.push(await getAllRoutinesByUser(user));
+    });
 
-  return rows;
-
+    console.log("ROUTINES:", routines)
+    return routines;
+    
   } catch (error) {
     console.log("Could not get all routines");
     throw error;
@@ -36,11 +43,29 @@ async function getAllRoutines() {
   
 }
 
-// async function getAllRoutinesByUser({username}) {
-//   const routines = await client.query(`
-    
-//   `)
-// }
+async function getAllRoutinesByUser({username}) {
+  try {
+    const { rows: [ userID ] } = await client.query(
+      `
+        SELECT id
+        FROM users
+        WHERE username=$1;
+      `, [username] );
+
+    const { rows } = await client.query(
+      `
+        SELECT *
+        FROM routines
+        WHERE "creatorId"=${ userID.id };
+      `);
+
+      rows.forEach((routine) => routine.creatorName = username);
+      return rows;
+  } catch (error) {
+    console.log("Could not get all routines by user");
+    throw error;
+  }
+}
 
 // async function getPublicRoutinesByUser({username}) {
 // }
@@ -68,22 +93,14 @@ async function getAllPublicRoutines() {
 async function createRoutine({creatorId, isPublic, name, goal}) {
   
   try {
-     await client.query(
-      `
-      INSERT INTO routines ("creatorId", "isPublic", name, goal)
-      VALUES ($1, $2, $3, $4)
-      ON CONFLICT (name) DO NOTHING;
-      `, 
-      [creatorId, isPublic, name, goal]);
-
     const { rows: [routine] } = await client.query(
       `
-      SELECT *
-      FROM routines
-      WHERE name=$1;
-      `,
-      [name]
-      );
+        INSERT INTO routines ("creatorId", "isPublic", name, goal)
+        VALUES ($1, $2, $3, $4)
+        ON CONFLICT (name) DO NOTHING
+        RETURNING *;
+      `, 
+      [creatorId, isPublic, name, goal]);
 
     return routine;
 
@@ -94,19 +111,55 @@ async function createRoutine({creatorId, isPublic, name, goal}) {
   
 }
 
-// async function updateRoutine({id, ...fields}) {
-// }
+async function updateRoutine({id, ...fields}) {
+  const setString = Object.keys(fields).map((key, index) => `"${ key }"=$${ index + 1}`).join(', ');
+
+  if (setString.length === 0) {
+    return;
+  }
+
+  try {
+    await client.query(`
+      UPDATE routines
+      SET ${ setString }
+      WHERE id=${ id };
+    `, Object.values(fields));
+
+    const { rows: [ routine ]} = await client.query(`
+      SELECT *
+      FROM routines
+      WHERE id=$1;
+    `, [ id ]);
+
+    return routine;
+
+  } catch (error) {
+    console.log("Could not update routine");
+    throw error;
+  }
+
+}
 
 async function destroyRoutine(id) {
   try {
-    const routines = await client.query(`
-    DELETE FROM routines
-    WHERE id=$1;
-  `, [id])
+    const { rows: [ routineID ]} = await client.query(
+      `
+        SELECT id
+        FROM routines
+        WHERE id=$1;
+      `, [id]);
 
-  return routines;
+    const routineActivities = await getRoutineActivitiesByRoutine(routineID);
+    routineActivities.forEach((routine_activ) => destroyRoutineActivity(routine_activ.id))
 
-  } catch (error) {
+    await client.query(
+      `
+        DELETE FROM routines
+        WHERE id=$1;
+      `, [ id ]);
+
+
+    } catch (error) {
     console.log("Could not delete routine");
     throw error;
   }
@@ -118,10 +171,10 @@ module.exports = {
   getRoutinesWithoutActivities,
   getAllRoutines,
   getAllPublicRoutines,
-  // getAllRoutinesByUser,
+  getAllRoutinesByUser,
   // getPublicRoutinesByUser,
   // getPublicRoutinesByActivity,
   createRoutine,
-  // updateRoutine,
+  updateRoutine,
   destroyRoutine,
 }
