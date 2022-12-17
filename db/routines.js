@@ -272,9 +272,75 @@ async function getUsersPublicRoutines_HELPER({username})  {
   }
 }
 
-// async function getPublicRoutinesByActivity({id}) {
+async function getPublicRoutinesByActivity({id}) {
 
-// }
+    try {
+      const activities = await activitiesById_HELPER(id);
+
+      for (let i = 0; i < activities.length; i++) {
+        let activity = activities[i];
+        let activityID = activity.id;
+        let routineActs = await publicRoutineActivitiesByActivityId(activityID);
+        routineActs.forEach(async (RA) => {
+          if (RA.activityId === activity.id) {
+            activity.duration = RA.duration;
+            activity.count = RA.count;
+            let routineID = RA.routineId;
+
+            let routines = await publicRoutinesbyId(routineID);
+
+            for (let x = 0; x < routines.length; x++) {
+              let routine = routines[x];
+              activity.routine = [];
+              if (routine.id === RA.activityId) {
+                activity.routines.push(routine);
+              }
+            }
+          }
+        })
+      }
+      console.log("PUB ROUTINES BY ACT:", activities)
+      return activities;
+  } catch (error) {
+    console.log("Could not get Public Routines by Activity");
+    throw error;
+  }
+}
+
+async function publicRoutinesbyId(id) {
+  const { rows } = await client.query(
+    `
+      SELECT *
+      FROM routines
+      WHERE id=$1
+      AND "isPublic"=true;
+    `, [id]
+  )
+  return rows;
+}
+
+async function publicRoutineActivitiesByActivityId(id) {
+  const { rows } = await client.query(
+    `
+      SELECT *
+      FROM routine_activities
+      WHERE "activityId"=$1;
+    `, [id]
+  )
+  return rows;
+}
+
+async function activitiesById_HELPER(id) {
+  const { rows } = await client.query(
+      `
+        SELECT *
+        FROM activities
+        WHERE id=$1;
+      `, [id]
+    );
+
+    return rows;
+}
 
 async function createRoutine({creatorId, isPublic, name, goal}) {
   
@@ -359,7 +425,7 @@ module.exports = {
   getAllPublicRoutines,
   getAllRoutinesByUser,
   getPublicRoutinesByUser,
-  // getPublicRoutinesByActivity,
+  getPublicRoutinesByActivity,
   createRoutine,
   updateRoutine,
   destroyRoutine,
