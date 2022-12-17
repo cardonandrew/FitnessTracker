@@ -12,7 +12,6 @@ const deletePass = (user) => {
 async function createUser({ username, password }){
 
   const SALT_COUNT = 10;
-  
 
   try{
 
