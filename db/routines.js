@@ -20,6 +20,27 @@ async function getRoutineById(id){
 }
 
 async function getRoutinesWithoutActivities() {
+  try {
+    const { rows } = await client.query(
+      `
+        SELECT username
+        FROM users;
+      `
+    );
+    let routines = [];
+    for (let i = 0; i < rows.length; i++) {  
+      let user = rows[i];
+      let allRoutines = await getAllRoutinesByUser(user)
+      routines.push(allRoutines);
+    }
+    routines = routines.flat();
+    
+    return routines;
+
+  } catch (error) {
+    console.log("Could not get routines");
+    throw error;
+  }
 }
 
 async function getAllRoutines() {
@@ -33,7 +54,7 @@ async function getAllRoutines() {
     let routines = [];
     for (let i = 0; i < rows.length; i++){
       let user = rows[i];
-      let allRoutines = await getAllRoutinesByUser(user)
+      let allRoutines = await userRoutines_HELPER(user)
       routines.push(allRoutines);
     }
     routines = routines.flat();
@@ -62,7 +83,7 @@ async function getAllRoutines() {
       })
 
     }
-    
+
     return routines;
 
   } catch (error) {
@@ -72,7 +93,7 @@ async function getAllRoutines() {
   
 }
 
-async function getAllRoutinesByUser({username}) {
+async function userRoutines_HELPER({username}) {
   try {
     const { rows: [ userID ] } = await client.query(
       `
@@ -96,23 +117,121 @@ async function getAllRoutinesByUser({username}) {
   }
 }
 
+async function getAllRoutinesByUser({username}) {
+  try {
+    let routines = [];
+    let allRoutines = await userRoutines_HELPER({username: username})
+    routines.push(allRoutines);
+
+    routines = routines.flat();
+    let allActivities = await getAllActivities();
+
+    for (let i = 0; i < routines.length; i++) {
+      let routineObj = routines[i];
+      routineObj.activities = [];
+      let routineID = {id: routineObj.id}
+      let rout_Acts = await getRoutineActivitiesByRoutine(routineID)
+      allActivities.forEach((activity) => {
+        for (let i = 0; i < rout_Acts.length; i++)  {
+          let eachRoutineAct = rout_Acts[i];
+          if (activity.id === eachRoutineAct.activityId) {
+            if (activity.duration === undefined)  {
+              activity.duration = eachRoutineAct.duration;
+              activity.count = eachRoutineAct.count;
+              activity.routineActivityId = eachRoutineAct.id;
+              activity.routineId = routineObj.id;
+              routineObj.activities.push(activity);
+            } else {
+              routineObj.activities.push(activity);
+            }
+          }
+        }
+      })
+    }
+
+    return routines;
+
+  } catch (error) {
+    console.log("Could not get all routines by user");
+    throw error;
+  }
+}
+
 // async function getPublicRoutinesByUser({username}) {
 // }
 
 async function getAllPublicRoutines() {
   try {
-    const { rows } = await client.query(`
-    SELECT *
-    FROM routines
-    WHERE "isPublic"=true;
-  `)
-  return rows;
+    const { rows } = await client.query(
+      `
+        SELECT username
+        FROM users;
+      `
+    );
+    let routines = [];
+    for (let i = 0; i < rows.length; i++) {
+      let user = rows[i];
+      let publicRoutines = await getUsersPublicRoutines_HELPER(user)
+      routines.push(publicRoutines);
+    }
+    routines = routines.flat();
+    let allActivities = await getAllActivities();
+
+    for (let i = 0; i < routines.length; i++) {
+      let routineObj = routines[i];
+      routineObj.activities = [];
+      let routineID = {id: routineObj.id}
+      let rout_Acts = await getRoutineActivitiesByRoutine(routineID)
+      allActivities.forEach((activity) => {
+        for (let i = 0; i < rout_Acts.length; i++)  {
+          let eachRoutineAct = rout_Acts[i];
+          if (activity.id === eachRoutineAct.activityId) {
+            if (activity.duration === undefined)  {
+              activity.duration = eachRoutineAct.duration;
+              activity.count = eachRoutineAct.count;
+              activity.routineActivityId = eachRoutineAct.id;
+              activity.routineId = routineObj.id;
+              routineObj.activities.push(activity);
+            } else {
+              routineObj.activities.push(activity);
+            }
+          }
+        }
+      })
+    }
+
+    return routines;
 
   } catch (error) {
     console.log("Could not get all public routines");
     throw error;
   }
   
+}
+
+async function getUsersPublicRoutines_HELPER({username})  {
+  try {
+    const { rows: [ userID ] } = await client.query(
+      `
+        SELECT id
+        FROM users
+        WHERE username=$1;
+      `, [username] );
+
+    const { rows } = await client.query(
+      `
+        SELECT *
+        FROM routines
+        WHERE "creatorId"=${ userID.id }
+        AND "isPublic"=true;
+      `);
+      
+      rows.forEach((routine) => routine.creatorName = username);
+      return rows;
+  } catch (error) {
+    console.log("Could not get all routines by user");
+    throw error;
+  }
 }
 
 // async function getPublicRoutinesByActivity({id}) {
