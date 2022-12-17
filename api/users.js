@@ -34,7 +34,7 @@ usersRouter.post('/login', async (req, res, next) => {
 
 // POST /api/users/register
 usersRouter.post('/register', async (req, res, next) => {
-    const { username, password, name, location } = req.body;
+    const { username, password} = req.body;
   
     try {
       const _user = await getUserByUsername(username);
@@ -68,19 +68,29 @@ usersRouter.post('/register', async (req, res, next) => {
   });
 // GET /api/users/me
 usersRouter.get('/me', async (req, res, next) => {
+    const prefix = 'Bearer '
+    const auth = req.headers['Authorization'];
 
-    const data = jwt.verify(process.env.JWT_SECRET);
-    
-    if (data) {
-        const me = await getUserById(data.id)
+    if (!auth) {
+        next();
+      }
+
+    if (auth.startsWith(prefix)) {
+        
+        const token = auth.slice(prefix.length);
+
+    try {
+        const { id } = jwt.verify(token, process.env.JWT_SECRET);
+  
+        const me = await getUserById(id);
+        
         res.send(me)
-    } else {
-        next({
-            name: "currentUserError",
-            message: "Cannot verify user"
-    })
-    }
-
+  
+        next();
+      } catch (error) {
+            console.log(error)
+      }
+}
   });
   
 // GET /api/users/:username/routines
