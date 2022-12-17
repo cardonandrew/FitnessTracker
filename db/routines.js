@@ -1,6 +1,7 @@
 const { getAllActivities } = require('./activities');
 const client = require('./client');
 const { destroyRoutineActivity, getRoutineActivitiesByRoutine } = require('./routine_activities');
+const { getUserById } = require('./users');
 
 async function getRoutineById(id){
   try {
@@ -274,72 +275,68 @@ async function getUsersPublicRoutines_HELPER({username})  {
 
 async function getPublicRoutinesByActivity({id}) {
 
-    try {
-      const activities = await activitiesById_HELPER(id);
+  try {
+    const activity = await activitiesById_HELPER(id);
+    const routine_activities = await routineActsByActID_HELPER(activity.id);
 
-      for (let i = 0; i < activities.length; i++) {
-        let activity = activities[i];
-        let activityID = activity.id;
-        let routineActs = await publicRoutineActivitiesByActivityId(activityID);
-        routineActs.forEach(async (RA) => {
-          if (RA.activityId === activity.id) {
-            activity.duration = RA.duration;
-            activity.count = RA.count;
-            let routineID = RA.routineId;
+    for (let i = 0; i < routine_activities.length; i++) {
+      let RA = routine_activities[i];
+      console.log("ROUTINE ACTIVITY ID:", RA.id);
+      let routineID = RA.routineId;
+      let { rows: [ routine ] } = await client.query(
+        `
+          SELECT *
+          FROM routines
+          WHERE "isPublic"=true
+          AND id=${routineID};
+        `
+      );
 
-            let routines = await publicRoutinesbyId(routineID);
-
-            for (let x = 0; x < routines.length; x++) {
-              let routine = routines[x];
-              activity.routine = [];
-              if (routine.id === RA.activityId) {
-                activity.routines.push(routine);
-              }
-            }
-          }
-        })
+      if (!routine) {
+        return;
       }
-      console.log("PUB ROUTINES BY ACT:", activities)
-      return activities;
+      let { username } = await getUserById(routine.creatorId);
+      routine.creatorName = username;
+
+      activity.duration = RA.duration;
+      activity.count = RA.count;
+      activity.routineId = routineID;
+      activity.routineActivityId = RA.id;
+      let activities = [activity];
+      routine.activities = activities;
+
+      return [routine];
+
+    }
+
   } catch (error) {
     console.log("Could not get Public Routines by Activity");
     throw error;
   }
 }
 
-async function publicRoutinesbyId(id) {
-  const { rows } = await client.query(
-    `
-      SELECT *
-      FROM routines
-      WHERE id=$1
-      AND "isPublic"=true;
-    `, [id]
-  )
-  return rows;
-}
-
-async function publicRoutineActivitiesByActivityId(id) {
+async function routineActsByActID_HELPER(ID){
   const { rows } = await client.query(
     `
       SELECT *
       FROM routine_activities
-      WHERE "activityId"=$1;
-    `, [id]
-  )
+      WHERE "activityId"=${ID};
+    `
+  );
+
   return rows;
 }
 
-async function activitiesById_HELPER(id) {
-  const { rows } = await client.query(
-      `
-        SELECT *
-        FROM activities
-        WHERE id=$1;
-      `, [id]
-    );
-
-    return rows;
+async function activitiesById_HELPER(ID) {
+  let { rows: [ activity ] } = await client.query(
+    `
+      SELECT *
+      FROM activities
+      WHERE id=${ID};
+    `
+  );
+  
+  return activity;
 }
 
 async function createRoutine({creatorId, isPublic, name, goal}) {
