@@ -67,7 +67,25 @@ usersRouter.post('/register', async (req, res, next) => {
     } 
   });
 // GET /api/users/me
+usersRouter.get('/me', async (req, res, next) => {
 
+    const data = jwt.verify(process.env.JWT_SECRET);
+    
+    if (data) {
+        const me = await getUserById(data.id)
+        res.send(me)
+    } else {
+        next({
+            name: "currentUserError",
+            message: "Cannot verify user"
+    })
+    }
+
+  });
+  
 // GET /api/users/:username/routines
+usersRouter.get(':username/routines', async (req, res, next) => {
+const { username } = req.body
 
+});
 module.exports = usersRouter;
