@@ -157,8 +157,46 @@ async function getAllRoutinesByUser({username}) {
   }
 }
 
-// async function getPublicRoutinesByUser({username}) {
-// }
+async function getPublicRoutinesByUser({username}) {
+  try {
+    let routines = [];
+    let allRoutines = await getUsersPublicRoutines_HELPER({username: username})
+    routines.push(allRoutines);
+
+    routines = routines.flat();
+    let allActivities = await getAllActivities();
+
+    for (let i = 0; i < routines.length; i++) {
+      let routineObj = routines[i];
+      routineObj.activities = [];
+      let routineID = {id: routineObj.id}
+      let rout_Acts = await getRoutineActivitiesByRoutine(routineID)
+      allActivities.forEach((activity) => {
+        for (let i = 0; i < rout_Acts.length; i++)  {
+          let eachRoutineAct = rout_Acts[i];
+          if (activity.id === eachRoutineAct.activityId) {
+            if (activity.duration === undefined)  {
+              activity.duration = eachRoutineAct.duration;
+              activity.count = eachRoutineAct.count;
+              activity.routineActivityId = eachRoutineAct.id;
+              activity.routineId = routineObj.id;
+              routineObj.activities.push(activity);
+            } else {
+              routineObj.activities.push(activity);
+            }
+          }
+        }
+      })
+    }
+
+    return routines;
+
+  } catch (error) {
+    console.log("Could not get all routines by user");
+    throw error;
+  }
+
+}
 
 async function getAllPublicRoutines() {
   try {
@@ -320,7 +358,7 @@ module.exports = {
   getAllRoutines,
   getAllPublicRoutines,
   getAllRoutinesByUser,
-  // getPublicRoutinesByUser,
+  getPublicRoutinesByUser,
   // getPublicRoutinesByActivity,
   createRoutine,
   updateRoutine,
