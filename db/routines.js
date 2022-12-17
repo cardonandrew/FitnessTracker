@@ -1,3 +1,4 @@
+const { getAllActivities } = require('./activities');
 const client = require('./client');
 const { destroyRoutineActivity, getRoutineActivitiesByRoutine } = require('./routine_activities');
 
@@ -20,7 +21,7 @@ async function getRoutineById(id){
 
 async function getRoutinesWithoutActivities() {
 }
-let routines  = [];
+
 async function getAllRoutines() {
   try {
     const { rows } = await client.query(
@@ -29,13 +30,41 @@ async function getAllRoutines() {
         FROM users;
       `
     );
-    rows.forEach(async (user) => {
-      routines.push(await getAllRoutinesByUser(user));
-    });
+    let routines = [];
+    for (let i = 0; i < rows.length; i++){
+      let user = rows[i];
+      let allRoutines = await getAllRoutinesByUser(user)
+      routines.push(allRoutines);
+    }
+    routines = routines.flat();
+    let allActivities = await getAllActivities();
 
-    console.log("ROUTINES:", routines)
-    return routines;
+    for (let i = 0; i < routines.length; i++) {
+      let routineObj = routines[i];
+      routineObj.activities = [];
+      let routineID = {id: routineObj.id}
+      let rout_Acts = await getRoutineActivitiesByRoutine(routineID)
+      allActivities.forEach((activity) => {
+        for (let i = 0; i < rout_Acts.length; i++)  {
+          let eachRoutineAct = rout_Acts[i];
+          if (activity.id === eachRoutineAct.activityId) {
+            if (activity.duration === undefined)  {
+              activity.duration = eachRoutineAct.duration;
+              activity.count = eachRoutineAct.count;
+              activity.routineActivityId = eachRoutineAct.id;
+              activity.routineId = routineObj.id;
+              routineObj.activities.push(activity);
+            } else {
+              routineObj.activities.push(activity);
+            }
+          }
+        }
+      })
+
+    }
     
+    return routines;
+
   } catch (error) {
     console.log("Could not get all routines");
     throw error;
