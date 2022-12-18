@@ -281,7 +281,6 @@ async function getPublicRoutinesByActivity({id}) {
 
     for (let i = 0; i < routine_activities.length; i++) {
       let RA = routine_activities[i];
-      console.log("ROUTINE ACTIVITY ID:", RA.id);
       let routineID = RA.routineId;
       let { rows: [ routine ] } = await client.query(
         `
