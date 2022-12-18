@@ -1,4 +1,5 @@
 const client = require("./client");
+const bcrypt = require('bcrypt');
 
 // database functions
 const deletePass = (user) => {
@@ -9,7 +10,12 @@ const deletePass = (user) => {
 }
 // user functions
 async function createUser({ username, password }){
+
+  const SALT_COUNT = 10;
+
   try{
+
+      const hashedPassword = await bcrypt.hash(password, SALT_COUNT);
       if(!password || !username){throw Error("Error finding credentials")}
 
     const { rows: [ user ] } = await client.query(`
@@ -17,7 +23,7 @@ async function createUser({ username, password }){
       VALUES($1, $2) 
       ON CONFLICT (username) DO NOTHING 
       RETURNING *;
-    `, [username, password]);
+    `, [username, hashedPassword]);
 
     deletePass(user)
 
@@ -29,16 +35,20 @@ async function createUser({ username, password }){
  
 async function getUser({ username, password }) {
   try {
+
+    const getUser = await getUserByUsername(username);
+    const hashedPassword = getUser.password;
+    const isValid = await bcrypt.compare(password, hashedPassword);
+
+    if (!isValid) {
+      throw Error("Password is incorrect.")
+    }
+
     const { rows: [user] } = await client.query(`
       SELECT *
       FROM users
       WHERE username=$1 AND password=$2
-    `, [username, password]);
-
-
-    if (password != user.password)  {
-      throw Error("Password doesn't match")
-    }
+    `, [username, hashedPassword]);
     
     deletePass(user)
 

@@ -86,6 +86,8 @@ usersRouter.get('/me', async (req, res, next) => {
         
         res.send(me)
   
+        next();
+
       } catch (error) {
             console.log(error)
       }
