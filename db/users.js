@@ -12,7 +12,7 @@ const deletePass = (user) => {
 async function createUser({ username, password }){
 
   const SALT_COUNT = 10;
-  
+
   try{
 
       const hashedPassword = await bcrypt.hash(password, SALT_COUNT);
