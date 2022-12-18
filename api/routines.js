@@ -33,9 +33,15 @@ routinesRouter.post('./routines', async (req, res, next) => {
 
 })
 // PATCH /api/routines/:routineId
+routinesRouter.patch('/routines/:routineId', async (req, res) => {
 
+})
 // DELETE /api/routines/:routineId
-
+routinesRouter.delete('/routines/:routineId', async (req, res) => {
+    
+})
 // POST /api/routines/:routineId/activities
-
+routinesRouter.post('/routines/:routineId/activities', async (req, res) => {
+    
+})
 module.exports = routinesRouter;
