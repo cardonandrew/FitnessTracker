@@ -10,8 +10,9 @@ async function getAllActivities() {
 
     return rows;
   } catch (error) {
-    console.log("Error getting all activities!");
-    throw error;
+    return {
+      error: "Error getting all activities!"
+    }
   }
 }
 
@@ -80,8 +81,9 @@ async function createActivity({ name, description }) {
       `, [name, description]);
       return activity;
       } catch (error) {
-        console.log("Error creating activity!");
-        throw error;
+        return {
+          error: "Error creating activity!"  
+        }
       }
 }
 
@@ -107,8 +109,9 @@ async function updateActivity({ id, ...fields }) {
 
     return activity;
   } catch (error) {
-    console.log("Error udpating activities!");
-    throw error;
+    return {
+      error: "Error updating activities!"
+    }
   }
 }
 
