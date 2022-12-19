@@ -72,17 +72,18 @@ async function attachActivitiesToRoutines(routines) {
 
 // return the new activity
 async function createActivity({ name, description }) {
-    try {
-      const { rows: [ activity ] } = await client.query(`
-        INSERT INTO activities(name, description)
-        VALUES ($1, $2)
-        RETURNING *;
-      `, [name, description]);
-      return activity;
-      } catch (error) {
-        console.log("Error creating activity!");
-        throw error;
-      }
+  try {
+    const { rows: [ activity ] } = await client.query(`
+      INSERT INTO activities(name, description)
+      VALUES ($1, $2)
+      RETURNING *;
+    `, [name, description]);
+    return activity;
+    } catch (error) {
+      console.log("Error creating activity!");
+      
+      return {"error": "error", "message": "An activity with name Push Ups already exists", "name": "error"};
+    }
 }
 
 // don't try to update the id
