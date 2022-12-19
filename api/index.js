@@ -3,6 +3,7 @@ const apiRouter = express.Router();
 
 // GET /api/health
 apiRouter.get('/health', async (req, res, next) => {
+    res.status(200)
     res.send({
         message: "API responding and in good health"
     })
