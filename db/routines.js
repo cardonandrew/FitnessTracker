@@ -15,7 +15,7 @@ async function getRoutineById(id){
 
   } catch (error) {
     console.log("Could not get routine by ID")
-    throw error;
+    return
   }
   
 }
@@ -40,7 +40,7 @@ async function getRoutinesWithoutActivities() {
 
   } catch (error) {
     console.log("Could not get routines");
-    throw error;
+    return;
   }
 }
 
@@ -89,7 +89,7 @@ async function getAllRoutines() {
 
   } catch (error) {
     console.log("Could not get all routines");
-    throw error;
+    return;
   }
   
 }
@@ -114,7 +114,7 @@ async function userRoutines_HELPER({username}) {
       return rows;
   } catch (error) {
     console.log("Could not get all routines by user");
-    throw error;
+    return;
   }
 }
 
@@ -154,7 +154,7 @@ async function getAllRoutinesByUser({username}) {
 
   } catch (error) {
     console.log("Could not get all routines by user");
-    throw error;
+    return;
   }
 }
 
@@ -194,7 +194,7 @@ async function getPublicRoutinesByUser({username}) {
 
   } catch (error) {
     console.log("Could not get all routines by user");
-    throw error;
+    return;
   }
 
 }
@@ -243,7 +243,7 @@ async function getAllPublicRoutines() {
 
   } catch (error) {
     console.log("Could not get all public routines");
-    throw error;
+    return;
   }
   
 }
@@ -269,7 +269,7 @@ async function getUsersPublicRoutines_HELPER({username})  {
       return rows;
   } catch (error) {
     console.log("Could not get all routines by user");
-    throw error;
+    return;
   }
 }
 
@@ -309,8 +309,9 @@ async function getPublicRoutinesByActivity({id}) {
     }
 
   } catch (error) {
-    console.log("Could not get Public Routines by Activity");
-    throw error;
+    return {
+      error: "Could not get Public Routines by Activity"
+    };
   }
 }
 
@@ -354,7 +355,7 @@ async function createRoutine({creatorId, isPublic, name, goal}) {
 
   } catch (error) {
     console.log("Could not complete 'createroutine'");
-    throw error;
+    return;
   }
   
 }
@@ -383,7 +384,7 @@ async function updateRoutine({id, ...fields}) {
 
   } catch (error) {
     console.log("Could not update routine");
-    throw error;
+    return ;
   }
 
 }
@@ -409,7 +410,7 @@ async function destroyRoutine(id) {
 
     } catch (error) {
     console.log("Could not delete routine");
-    throw error;
+    return;
   }
   
 }
