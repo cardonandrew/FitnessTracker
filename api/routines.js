@@ -1,6 +1,6 @@
 const express = require("express");
 const routinesRouter = express.Router();
-const { getAllPublicRoutines, createRoutine, getRoutineById, updateRoutine, destroyRoutine } = require("../db");
+const { getAllPublicRoutines, createRoutine, getRoutineById, updateRoutine, destroyRoutine, getActivityById } = require("../db");
 const jwt = require('jsonwebtoken')
 
 // GET /api/routines
@@ -97,9 +97,6 @@ routinesRouter.patch("/:routineId", async (req, res, next) => {
 
 // DELETE /api/routines/:routineId
 routinesRouter.delete("/:routineId", async (req, res, next) => {
-    // console.log("REQUEST params:", req.params)
-    // console.log("REQUEST BODY:", req.body)
-    // console.log("REQUEST headers:", req.headers)
     try {
         const { routineId } = req.params;
         const { authorization } = req.headers;
@@ -125,10 +122,26 @@ routinesRouter.delete("/:routineId", async (req, res, next) => {
     }
 })
 
-
-
-
-
 // POST /api/routines/:routineId/activities
+routinesRouter.post("/:routineId/activities", async (req, res, next) => {
+    // console.log("REQUEST params:", req.params)
+    console.log("REQUEST BODY:", req.body)
 
+    try {
+        const { authorization } = req.headers;
+        const { routineId, activityId, count, duration } = req.body;
+        const tokenString = authorization.slice(7, -1);
+        const tokenCheck = jwt.decode(tokenString);
+
+        const activity = await getActivityById(activityId);
+        console.log("ACTIVITY:", activity)
+        const routine = await getRoutineById(routineId);
+        console.log("ROUTINE:", routine)
+
+
+        res.send(req.body)
+    } catch (error) {
+        next(error)
+    }
+})
 module.exports = routinesRouter;
