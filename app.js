@@ -1,31 +1,46 @@
 require("dotenv").config();
+
 const express = require("express");
 const app = express();
-const bodyParser = require("body-parser");
-const cors = require("cors");
-const morgan = require("morgan");
-const apiRouter = require("./api/index");
 
+const morgan = require("morgan");
 app.use(morgan("dev"));
 
+const cors = require("cors");
 app.use(cors());
 
+const bodyParser = require("body-parser");
 app.use(bodyParser.json());
 
-app.use("/api", [apiRouter]);
+const apiRouter = require("./api/index");
+app.use("/api", apiRouter);
 
-app.use((req, res, next) => {
-    res.status(404)
-    res.send({
-       message: 'Page not found'
-    });
+app.use('*', (req, res, next) => {
+    const err = new Error();
+    err.status = 404;
+    next(err)
 });
 
-app.use((error, req, res, next) => {
-    res.status(500);
-    res.send(error);
-    console.log(error);
-    next();
+app.use(function (error, req, res, next) {
+    if (error.status === 500) {
+        res.status(500)
+        res.send({
+            messsage: "500 Internal Server Error",
+        });
+    } else {
+        return next(error);
+    }
 });
+
+app.use(function (error, req, res, next) {
+    if (error.status === 404) {
+        res.status(404)
+        res.send({
+            message: "404 Page Not Found"
+        })
+    } else {
+        return next(error)
+    }
+})
 
 module.exports = app;
