@@ -3,7 +3,7 @@ const usersRouter = express.Router();
 const jwt = require('jsonwebtoken');
 const { JWT_SECRET } = process.env;
 
-const { getUserByUsername, createUser, getUser } = require('../db');
+const { getUserByUsername, createUser, getUser, getPublicRoutinesByUser } = require('../db');
 // POST /api/users/login
 usersRouter.post('/login', async (req, res, next) => {
     const {username, password} = req.body;
@@ -101,8 +101,19 @@ usersRouter.get('/me', async (req, res, next) => {
 });
   
 // GET /api/users/:username/routines
-// usersRouter.get(':username/routines', async (req, res, next) => {
-// const { username } = req.body
+usersRouter.get('/:username/routines', async (req, res, next) => {
+  try {
+    const { username } = req.params;
+    const { authorization } = req.headers;
+    const tokenString = authorization.slice(7, -1);
+    const tokenCheck = jwt.decode(tokenString);
 
-// });
+    const pubRoutines = await getPublicRoutinesByUser({username: username});
+    res.send(pubRoutines)
+
+  } catch (error) {
+    next(error)
+  }
+});
+
 module.exports = usersRouter;
