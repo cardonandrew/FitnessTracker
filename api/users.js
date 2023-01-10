@@ -1,10 +1,9 @@
 const express = require('express');
 const usersRouter = express.Router();
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt')
 const { JWT_SECRET } = process.env;
 
-const { getUserByUsername, createUser, getUserById, getUser } = require('../db');
+const { getUserByUsername, createUser, getUser } = require('../db');
 // POST /api/users/login
 usersRouter.post('/login', async (req, res, next) => {
     const {username, password} = req.body;
@@ -78,31 +77,28 @@ usersRouter.post('/register', async (req, res, next) => {
 
 // GET /api/users/me
 usersRouter.get('/me', async (req, res, next) => {
-    const prefix = 'Bearer '
-    const auth = req.headers['Authorization'];
+  try {
+    const { authorization } = req.headers;
 
-    if (!auth) {
-        next();
-      }
+    if (authorization === undefined) {
+      res.status(401)
+      res.send({
+        "error": "No Token supplied",
+        "message": "You must be logged in to perform this action",
+        "name": "Token Error"
+      })
+    }
 
-    if (auth.startsWith(prefix)) {
-        
-        const token = auth.slice(prefix.length);
-
-    try {
-        const { id } = jwt.verify(token, process.env.JWT_SECRET);
-  
-        const me = await getUserById(id);
-        
-        res.send(me)
-  
-        next();
-
-      } catch (error) {
-            console.log(error)
-      }
-}
-  });
+    const tokenString = authorization.slice(7, -1)
+    const tokenCheck = jwt.decode(tokenString)
+    const user = await getUserByUsername(tokenCheck.username);
+    res.send(user)
+    
+  } catch (error) {
+    next(error)
+  }
+    
+});
   
 // GET /api/users/:username/routines
 // usersRouter.get(':username/routines', async (req, res, next) => {
