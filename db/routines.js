@@ -391,14 +391,14 @@ async function updateRoutine({id, ...fields}) {
 
 async function destroyRoutine(id) {
   try {
-    const { rows: [ routineID ]} = await client.query(
+    const { rows: [ routine ]} = await client.query(
       `
-        SELECT id
+        SELECT *
         FROM routines
         WHERE id=$1;
       `, [id]);
 
-    const routineActivities = await getRoutineActivitiesByRoutine(routineID);
+    const routineActivities = await getRoutineActivitiesByRoutine(routine.id);
     routineActivities.forEach((routine_activ) => destroyRoutineActivity(routine_activ.id))
 
     await client.query(
@@ -407,7 +407,7 @@ async function destroyRoutine(id) {
         WHERE id=$1;
       `, [ id ]);
 
-
+      return routine;
     } catch (error) {
     console.log("Could not delete routine");
     return;
