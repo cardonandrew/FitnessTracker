@@ -1,21 +1,20 @@
 const express = require('express');
 const usersRouter = express.Router();
 const jwt = require('jsonwebtoken');
+const { JWT_SECRET } = process.env;
 
 const { getUser, getUserByUsername, createUser, getUserById } = require('../db');
 // POST /api/users/login
 usersRouter.post('/login', async (req, res, next) => {
-    const {username, password} = req.body
-
-    if (!username || !password) {
-        next({
-          name: "MissingCredentialsError",
-          message: "Please supply both a username and password"
-        });
-      }
+    const {username, password} = req.body;
       try {
+        if (!(username && password)) {
+          next({
+            name: "MissingCredentialsError",
+            message: "Please supply both a username and password"
+          });
+        }
         const user = await getUserByUsername(username);
-        console.log("user", user)
     
         if (user.password == password) {
           const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET);
@@ -27,45 +26,53 @@ usersRouter.post('/login', async (req, res, next) => {
           });
         }
       } catch(error) {
-        console.log(error);
-        next(error);
+        next(error)
       }
     });
 
 // POST /api/users/register
 usersRouter.post('/register', async (req, res, next) => {
-    const { username, password} = req.body;
-  
     try {
-      const _user = await getUserByUsername(username);
-  
-      if (_user) {
-        next({
-          name: 'UserExistsError',
-          message: 'A user by that username already exists'
-        });
+      const { username, password } = req.body;
+      console.log("REQUEST BODY:", req.body)
+
+      if (password.length < 8) {
+        const err = new Error()
+        err.name = "Internal Server Error";
+        err.error = "User Conflict";
+        err.message = "Password Too Short!";
+        res.status(500);
+        res.send(err)
+        next(err)
+      }
+
+      const user = await getUserByUsername(username);
+
+      if (user) {
+        const err = new Error()
+        err.name = "Internal Server Error";
+        err.error = "User Conflict";
+        err.message = `User ${user.username} is already taken.`
+        res.status(500)
+        res.send(err)
+        next(err)
       }
   
-      const user = await createUser({
-        username,
-        password,
-      });
+      const createdUser = await createUser(req.body);
   
-      const token = jwt.sign({ 
-        id: user.id, 
-        username
-      }, process.env.JWT_SECRET, {
-        expiresIn: '1w'
-      });
-  
-      res.send({ 
-        message: "thank you for signing up",
-        token 
-      });
-    } catch ({ name, message }) {
-      next({ name, message })
+      const token = jwt.sign({username: createdUser.username}, JWT_SECRET);
+      const response = {
+        "message": "Thank you for signing up",
+        "token": token,
+        "user": createdUser
+      };
+      res.send(response);
+
+    } catch (error) {
+      next(error);
     } 
   });
+
 // GET /api/users/me
 usersRouter.get('/me', async (req, res, next) => {
     const prefix = 'Bearer '
@@ -95,8 +102,8 @@ usersRouter.get('/me', async (req, res, next) => {
   });
   
 // GET /api/users/:username/routines
-usersRouter.get(':username/routines', async (req, res, next) => {
-const { username } = req.body
+// usersRouter.get(':username/routines', async (req, res, next) => {
+// const { username } = req.body
 
-});
+// });
 module.exports = usersRouter;
