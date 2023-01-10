@@ -1,30 +1,34 @@
 const express = require('express');
 const usersRouter = express.Router();
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt')
 const { JWT_SECRET } = process.env;
 
-const { getUser, getUserByUsername, createUser, getUserById } = require('../db');
+const { getUserByUsername, createUser, getUserById, getUser } = require('../db');
 // POST /api/users/login
 usersRouter.post('/login', async (req, res, next) => {
     const {username, password} = req.body;
       try {
         if (!(username && password)) {
-          next({
-            name: "MissingCredentialsError",
-            message: "Please supply both a username and password"
-          });
+          const err = new Error()
+          err.name = "Internal Server Error";
+          err.error = "User Conflict";
+          err.message = "Password Too Short!";
+          res.status(500);
+          res.send(err)
+          next(err)
         }
-        const user = await getUserByUsername(username);
+        const user = await getUser(req.body);
     
-        if (user.password == password) {
-          const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET);
-          res.send({ message: "you're logged in!", token: token });
-        } else {
-          next({ 
-            name: 'IncorrectCredentialsError', 
-            message: 'Username or password is incorrect'
-          });
+        const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET);
+        
+        const userData = {
+          user: user,
+          token: token,
+          message: "you're logged in!"
         }
+        res.send(userData);
+        
       } catch(error) {
         next(error)
       }
@@ -34,7 +38,6 @@ usersRouter.post('/login', async (req, res, next) => {
 usersRouter.post('/register', async (req, res, next) => {
     try {
       const { username, password } = req.body;
-      console.log("REQUEST BODY:", req.body)
 
       if (password.length < 8) {
         const err = new Error()
